@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assistant IA</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f1f1f1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    #chat-container {
+      width: 400px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+    }
+
+    #chat-window {
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    #messages {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .message {
+      opacity: 0;
+      animation: fadeIn 0.4s forwards;
+      cursor: pointer;
+    }
+
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+      }
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background-color: #dcf8c6;
+      padding: 8px;
+      border-radius: 10px;
+      max-width: 80%;
+    }
+
+    .message.ai {
+      align-self: flex-start;
+      background-color: #f0f0f0;
+      padding: 8px;
+      border-radius: 10px;
+      max-width: 80%;
+    }
+
+    .timestamp {
+      font-size: 0.7em;
+      color: #888;
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    .date-separator {
+      text-align: center;
+      font-size: 0.75em;
+      color: #555;
+      margin: 10px 0;
+      font-style: italic;
+    }
+
+    #user-input, #pseudo-input {
+      padding: 8px;
+    }
+
+    #user-input {
+      width: calc(100% - 90px);
+    }
+
+    button {
+      padding: 8px;
+      width: 80px;
+      margin-left: 5px;
+    }
+
+    #clear-history {
+      margin-top: 10px;
+      background-color: #ff4d4d;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      padding: 6px;
+      width: 100%;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="chat-container">
+    <div id="chat-window">
+      <div id="messages"></div>
+    </div>
+    <div style="display: flex; margin-bottom: 10px;">
+      <input type="text" id="pseudo-input" placeholder="Votre pseudo..." />
+    </div>
+    <div style="display: flex;">
+      <input type="text" id="user-input" placeholder="Posez votre question..." />
+      <button onclick="sendMessage()">Envoyer</button>
+    </div>
+    <button id="clear-history" onclick="clearHistory()">🗑️ Effacer l'historique</button>
+  </div>
+  <script>
+    const messages = document.getElementById("messages");
+    let lastDate = "";
+
+    window.addEventListener("load", () => {
+      const saved = JSON.parse(localStorage.getItem("chatHistory")) || [];
+      saved.forEach(({ sender, text, timestamp, date }) => {
+        if (date !== lastDate) {
+          addDateSeparator(date);
+          lastDate = date;
+        }
+        addMessage(sender, text, timestamp);
+      });
+    });
+
+    function sendMessage() {
+      const input = document.getElementById("user-input");
+      const pseudo = document.getElementById("pseudo-input").value.trim() || "Utilisateur";
+      const text = input.value.trim();
+      if (!text) return;
+
+      const now = new Date();
+      const timestamp = now.toLocaleTimeString();
+      const date = now.toLocaleDateString();
+      if (date !== lastDate) {
+        addDateSeparator(date);
+        lastDate = date;
+      }
+      addMessage("user", text, timestamp, pseudo);
+      saveToHistory("user", text, timestamp, date);
+      input.value = "";
+      getAIResponse(text);
+    }
+
+    function addMessage(sender, text, timestamp, pseudo = "Utilisateur") {
+      const div = document.createElement("div");
+      div.className = `message ${sender}`;
+      div.innerHTML = `${sender === 'user' ? '👤 ' + pseudo : '🤖'} ${text}`;
+      if (timestamp) {
+        const time = document.createElement("div");
+        time.className = "timestamp";
+        time.textContent = timestamp;
+        div.appendChild(time);
+      }
+
+      div.addEventListener("click", () => {
+        const newText = prompt("Modifier ce message :", text);
+        if (newText) {
+          div.childNodes[0].textContent = `${sender === 'user' ? '👤 ' + pseudo : '🤖'} ${newText}`;
+        }
+      });
+
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+
+      if (sender === "ai") speak(text);
+    }
+
+    function addDateSeparator(date) {
+      const sep = document.createElement("div");
+      sep.className = "date-separator";
+      sep.textContent = `📅 ${date}`;
+      messages.appendChild(sep);
+    }
+
+    function saveToHistory(sender, text, timestamp, date) {
+      const history = JSON.parse(localStorage.getItem("chatHistory")) || [];
+      history.push({ sender, text, timestamp, date });
+      localStorage.setItem("chatHistory", JSON.stringify(history));
+    }
+
+    function clearHistory() {
+      localStorage.removeItem("chatHistory");
+      messages.innerHTML = "";
+      lastDate = "";
+    }
+
+    function speak(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "fr-FR";
+      speechSynthesis.speak(utterance);
+    }
+
+    async function getAIResponse(prompt) {
+      const lowerPrompt = prompt.toLowerCase();
+      let response = "Je ne suis pas sûr de comprendre. Peux-tu reformuler ?";
+
+      try {
+        const res = await fetch('data.json');
+        const db = await res.json();
+        const match = db.find(entry => lowerPrompt.includes(entry.question));
+        if (match) response = match.response;
+        else {
+          const aiRes = await fetch('/api/gpt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt })
+          });
+
+          const aiData = await aiRes.json();
+          if (aiData.reply) response = aiData.reply;
+        }
+      } catch (err) {
+        response = "Erreur lors de la récupération des réponses.";
+      }
+
+      const now = new Date();
+      const timestamp = now.toLocaleTimeString();
+      const date = now.toLocaleDateString();
+      if (date !== lastDate) {
+        addDateSeparator(date);
+        lastDate = date;
+      }
+      addMessage("ai", response, timestamp);
+      saveToHistory("ai", response, timestamp, date);
+    }
+  </script>
+</body>
+</html>
