@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assistant IA</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f1f1f1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    #chat-container {
+      width: 400px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+    }
+
+    #chat-window {
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    #messages {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #user-input {
+      width: calc(100% - 90px);
+      padding: 8px;
+    }
+
+    button {
+      padding: 8px;
+      width: 80px;
+      margin-left: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="chat-container">
+    <div id="chat-window">
+      <div id="messages"></div>
+    </div>
+    <div style="display: flex;">
+      <input type="text" id="user-input" placeholder="Posez votre question..." />
+      <button onclick="sendMessage()">Envoyer</button>
+    </div>
+  </div>
+  <script>
+    const messages = document.getElementById("messages");
+
+    function sendMessage() {
+      const input = document.getElementById("user-input");
+      const text = input.value.trim();
+      if (!text) return;
+
+      addMessage("Utilisateur", text);
+      input.value = "";
+      getAIResponse(text);
+    }
+
+    function addMessage(sender, text) {
+      const div = document.createElement("div");
+      div.textContent = `${sender}: ${text}`;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    async function getAIResponse(prompt) {
+      const lowerPrompt = prompt.toLowerCase();
+      let response = "Je ne suis pas sûr de comprendre. Peux-tu reformuler ?";
+
+      try {
+        const res = await fetch('data.json');
+        const db = await res.json();
+        const match = db.find(entry => lowerPrompt.includes(entry.question));
+        if (match) response = match.response;
+        else {
+          const aiRes = await fetch('/api/gpt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt })
+          });
+          const aiData = await aiRes.json();
+          if (aiData.reply) response = aiData.reply;
+        }
+      } catch (err) {
+        response = "Erreur lors de la récupération des réponses.";
+      }
+
+      addMessage("IA", response);
+    }
+  </script>
+</body>
+</html>

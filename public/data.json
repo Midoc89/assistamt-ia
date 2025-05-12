@@ -1,0 +1,14 @@
+[
+  {
+    "question": "bonjour",
+    "response": "Salut ! Comment puis-je t'aider ?"
+  },
+  {
+    "question": "ton nom",
+    "response": "Je suis ton assistant personnel autonome."
+  },
+  {
+    "question": "heure",
+    "response": "Je ne suis pas encore connect\u00e9 \u00e0 une horloge r\u00e9elle."
+  }
+]
