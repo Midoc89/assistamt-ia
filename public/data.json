@@ -1,11 +1,11 @@
 [
   {
     "question": "bonjour",
-    "response": "Salut ! Comment puis-je t'aider ?"
+    "response": "Bonjour ! Comment puis-je t'aider ?"
   },
   {
     "question": "ton nom",
-    "response": "Je suis ton assistant personnel autonome."
+    "response": "Je suis ton assistant personnel."
   },
   {
     "question": "heure",
